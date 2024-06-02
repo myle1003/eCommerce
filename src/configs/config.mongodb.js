@@ -18,7 +18,7 @@ const pro = {
     db: {
         host: process.env.PRO_DB_HOST || 'localhost',
         port: process.env.PRO_DB_PORT || 27017,
-        name: process.env.PRO_DB_NAME || shopPRO,
+        name: process.env.PRO_DB_NAME || 'shopPRO',
     }
 }
 
