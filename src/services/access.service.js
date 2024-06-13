@@ -6,7 +6,8 @@ const crypto = require('crypto')
 const KeyTokenService = require('./keyToken.service')
 const { createTokenPair } = require('../auth/authUtils')
 const { getIntoData } = require('../utils')
-const { ForbiddenRequestError } = require('../core/error.response')
+const { ForbiddenRequestError, BadRequestError, UnauthorizedRequestError } = require('../core/error.response')
+const { findByEmail } = require('./shop.service')
 
 const RoleShop = {
   SHOP: 'SHOP',
@@ -16,6 +17,52 @@ const RoleShop = {
 }
 
 class AccessService {
+  /*
+  1 - check email in db
+  2 - match password
+  3 - create AT vs RT and save
+  4 - generate tokens
+  5 - get data return login
+  */
+  static signIn = async ({ email, password, refreshToken = null }) => {
+    const foundShop = await findByEmail({ email })
+    if (!foundShop) {
+      throw new BadRequestError(' Shop not registerd');
+    }
+
+    const matchPassword = bcrypt.compare(password, foundShop.password)
+    if (!matchPassword) {
+      throw new UnauthorizedRequestError('Authenticationn Error')
+    }
+
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+      },
+      privateKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+      }
+    })
+
+    const { _id: userId } = foundShop
+    const tokens = await createTokenPair({ userId, email }, publicKey, privateKey)
+
+    await KeyTokenService.createKeyToken({
+      refreshToken: tokens.refreshToken,
+      privateKey,
+      publicKey,
+      userId
+    })
+
+    return {
+      shop: getIntoData({ fileds: ['_id', 'name', 'email'], object: foundShop }),
+      tokens
+    }
+  }
+
   static signUp = async ({ name, email, password }) => {
     // try {
     console.log("name", name);
@@ -54,10 +101,6 @@ class AccessService {
       })
 
       if (!publicKeyString) {
-        // return {
-        //   code: 'xxxx',
-        //   message: 'publicKeyString error'
-        // }
         throw new ForbiddenRequestError('Error: publicKeyString error');
       }
 
@@ -89,6 +132,12 @@ class AccessService {
     //     status: 'error'
     //   }
     // }
+  }
+
+  static singout = async ({ keyStore }) => {
+    const delKey = await KeyTokenService.removeById(keyStore._id)
+    console.log({ delKey });
+    return delKey
   }
 
 }
