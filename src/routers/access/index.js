@@ -7,12 +7,12 @@ const asyncHandler = require('../../helpers/asyncHandler')
 const router = express.Router()
 
 //singup
-router.post('/shop/signup', asyncHandler(accessController.signUp))
-router.post('/shop/signin', asyncHandler(accessController.singin))
+router.post('/signup', asyncHandler(accessController.signUp))
+router.post('/signin', asyncHandler(accessController.singin))
 
 //authentication
 router.use(authentication)
-router.post('/shop/signout', asyncHandler(accessController.singout))
-router.post('/shop/handlerRefreshToken', asyncHandler(accessController.handlerRefreshToken))
+router.post('/signout', asyncHandler(accessController.singout))
+router.post('/handlerRefreshToken', asyncHandler(accessController.handlerRefreshToken))
 
 module.exports = router
