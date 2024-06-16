@@ -1,13 +1,12 @@
 'use strict'
 
-const shopModel = require('../models/shop.model')
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
 const KeyTokenService = require('./keyToken.service')
-const { createTokenPair } = require('../auth/authUtils')
+const { createTokenPair, verifyJWT } = require('../auth/authUtils')
 const { getIntoData } = require('../utils')
 const { ForbiddenRequestError, BadRequestError, UnauthorizedRequestError } = require('../core/error.response')
-const { findByEmail } = require('./shop.service')
+const { findByEmail, createShop } = require('./shop.service')
 
 const RoleShop = {
   SHOP: 'SHOP',
@@ -66,13 +65,13 @@ class AccessService {
   static signUp = async ({ name, email, password }) => {
     // try {
     console.log("name", name);
-    const holderShop = await shopModel.findOne({ email }).lean()
+    const holderShop = await findByEmail({ email })
 
     if (holderShop) {
       throw new ForbiddenRequestError('Error: Shop allready registered');
     }
     const passwordHash = await bcrypt.hash(password, 10)
-    const newShop = await shopModel.create({
+    const newShop = await createShop({
       name, email, password: passwordHash, roles: [RoleShop.SHOP]
     })
 
@@ -139,6 +138,41 @@ class AccessService {
     console.log({ delKey });
     return delKey
   }
+
+  /* 
+    check this token used?
+  */
+  static handlerRefreshToken = async (refreshToken) => {
+    const foundToken = await KeyTokenService.findByRefreshTokenUsed(refreshToken)
+    if (foundToken) {
+      const { userId, email } = await verifyJWT(refreshToken, foundToken.privateKey)
+      console.log({ userId, email });
+      await KeyTokenService.deleteKeyById(userId)
+      throw new ForbiddenRequestError(' Something went wrong !! please relogin')
+    }
+    const holderToken = await KeyTokenService.findByRefreshToken(refreshToken)
+    if (!holderToken) throw new UnauthorizedRequestError('Shop not registered')
+
+    const { userId, email } = await verifyJWT(refreshToken, holderToken.privateKey)
+    const foundShop = await findByEmail({ email })
+    if (!foundShop) throw new UnauthorizedRequestError('Shop not registered')
+
+    const tokens = await createTokenPair({ userId, email }, holderToken.publicKey, holderToken.privateKey)
+
+    await holderToken.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokensUsed: refreshToken
+      }
+    })
+    return {
+      userId: { userId, email },
+      tokens
+    }
+  }
+
 
 }
 

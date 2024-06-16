@@ -8,6 +8,13 @@ const findByEmail = async ({ email, select = {
     return await shopModel.findOne({ email }).select(select).lean()
 }
 
+const createShop = async ({ name, email, password: passwordHash, roles }) => {
+    return await shopModel.create({
+        name, email, password: passwordHash, roles
+    })
+}
+
 module.exports = {
-    findByEmail
+    findByEmail,
+    createShop
 }
