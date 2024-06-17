@@ -1,18 +1,20 @@
 'use strict'
 
 const { BadRequestError } = require("../core/error.response");
-const { product, electronic, clothing } = require("../models/product.model")
+const { product, electronic, clothing, furniture } = require("../models/product.model")
 
 class ProductFactory {
+    static productRegistry = {}
+
+    static registerProductType(type, classRef) {
+        ProductFactory.productRegistry[type] = classRef
+    }
+
     static async createProduct(type, payload) {
-        switch (type) {
-            case 'Electronic':
-                return new Electronic(payload).createProduct()
-            case 'Clothing':
-                return new Clothing(payload).createProduct()
-            default:
-                throw new BadRequestError(`Invalid product type ${type}`)
-        }
+        const productClass = ProductFactory.productRegistry[type]
+        if (!productClass) throw new BadRequestError(`Invalid product type ${type}`)
+
+        return new productClass(payload).createProduct()
     }
 }
 
@@ -50,7 +52,7 @@ class Clothing extends Product {
     }
 }
 
-class Electrinic extends Product {
+class Electronic extends Product {
     async createProduct() {
         const newElectrinic = await electronic.create({
             ...this.p_attributes,
@@ -65,5 +67,25 @@ class Electrinic extends Product {
     }
 }
 
+class Furniture extends Product {
+    async createProduct() {
+        const newFurniture = await furniture.create({
+            ...this.p_attributes,
+            p_shop_id: this.p_shop_id
+        })
+        if (!newFurniture) throw new BadRequestError('create new furniture failed')
+
+        const newProduct = await super.createProduct(newFurniture._id)
+        if (!newProduct) throw new BadRequestError('create new furniture failed')
+
+        return newProduct
+    }
+}
+
+
+// register product types
+ProductFactory.registerProductType('Electronic', Electronic)
+ProductFactory.registerProductType('Clothing', Clothing)
+ProductFactory.registerProductType('Furniture', Furniture)
 
 module.exports = ProductFactory

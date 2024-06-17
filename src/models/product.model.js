@@ -9,6 +9,8 @@ const DOCUMENT_NAME_CLOTHING = 'clothing'
 const COLLECTION_NAME_CLOTHING = 'clothing'
 const DOCUMENT_NAME_ELECTRONIC = 'electronic'
 const COLLECTION_NAME_ELECTRONIC = 'electronic'
+const DOCUMENT_NAME_FURNITURE = 'furniture'
+const COLLECTION_NAME_FURNITURE = 'furniture'
 
 // Declare the Schema of the Mongo model
 var productSchema = new Schema({
@@ -74,9 +76,22 @@ const electrinicSchema = new Schema({
     timestamps: true
 })
 
+const furnitureSchema = new Schema({
+    brand: {
+        type: String,
+        required: true,
+    },
+    size: String,
+    material: String,
+}, {
+    collection: COLLECTION_NAME_FURNITURE,
+    timestamps: true
+})
+
 //Export the model
 module.exports = {
     product: model(DOCUMENT_NAME_PRODUCT, productSchema),
     electronic: model(DOCUMENT_NAME_ELECTRONIC, electrinicSchema),
     clothing: model(DOCUMENT_NAME_CLOTHING, clothingSchema),
+    furniture: model(DOCUMENT_NAME_FURNITURE, furnitureSchema),
 }
