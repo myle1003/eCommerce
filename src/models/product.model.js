@@ -1,7 +1,8 @@
 'use strict'
 
 //!dmbg
-const { model, Schema, Types } = require('mongoose'); // Erase if already required
+const { model, Schema, Types, default: mongoose } = require('mongoose'); // Erase if already required
+const slugify = require('slugify');
 
 const DOCUMENT_NAME_PRODUCT = 'product'
 const COLLECTION_NAME_PRODUCT = 'product'
@@ -18,10 +19,8 @@ var productSchema = new Schema({
         type: String,
         required: true
     },
-    p_thumb: {
-        type: String,
-        required: true
-    },
+    p_thumb: String,
+    p_slug: String,
     p_description: {
         type: String,
     },
@@ -39,18 +38,47 @@ var productSchema = new Schema({
         enum: ['Electrinic', 'Clothing', 'Furniture']
     },
     p_shop_id: {
-        type: Types.ObjectId,
-        ref: 'Shop'
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'shop'
     },
     p_attributes: {
         type: Schema.Types.Mixed,
         required: true,
     },
+    p_ratingsAverage: {
+        type: Number,
+        default: 4.5,
+        min: [1, 'Rating must be above 1.0'],
+        max: [5, 'Rating must be above 5.0'],
+        set: (val) => Math.round(val * 10) / 10,
+    },
+    p_variations: {
+        type: Array,
+        default: [],
+    },
+    isDraft: {
+        type: Boolean,
+        default: true,
+        index: true,
+        select: false
+    },
+    isPublic: {
+        type: Boolean,
+        default: false,
+        index: true,
+        select: false
+    }
 }, {
     collection: COLLECTION_NAME_PRODUCT,
     timestamps: true
 });
 
+productSchema.index({ p_name: 'text', p_description: 'text' })
+
+productSchema.pre('save', function (next) {
+    this.p_slug = slugify(this.p_name, { lower: true })
+    next()
+})
 
 const clothingSchema = new Schema({
     brand: {

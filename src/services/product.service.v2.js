@@ -1,7 +1,8 @@
 'use strict'
 
 const { BadRequestError } = require("../core/error.response");
-const { product, electronic, clothing, furniture } = require("../models/product.model")
+const { product, electronic, clothing, furniture } = require("../models/product.model");
+const { queryProduct, publicProductByShop, unPublicProductByShop, searchProduct } = require("../models/repositories/product.repo");
 
 class ProductFactory {
     static productRegistry = {}
@@ -16,6 +17,30 @@ class ProductFactory {
 
         return new productClass(payload).createProduct()
     }
+
+    static async findAllDarftsForShop({ p_shop_id, limit = 50, skip = 0 }) {
+        const query = { p_shop_id, isDraft: true }
+        return await queryProduct({ query, limit, skip })
+    }
+
+    static async findAllPublicForShop({ p_shop_id, limit = 50, skip = 0 }) {
+        const query = { p_shop_id, isPublic: true }
+        return await queryProduct({ query, limit, skip })
+    }
+
+    static async publicProductByShop({ p_shop_id, product_id }) {
+        return await publicProductByShop({ p_shop_id, product_id })
+    }
+
+    static async unPublicProductByShop({ p_shop_id, product_id }) {
+        return await unPublicProductByShop({ p_shop_id, product_id })
+    }
+
+    static async searchProduct({ keySearch }) {
+        return await searchProduct({ keySearch })
+    }
+
+
 }
 
 class Product {
